@@ -46,7 +46,7 @@ public class MainWindow extends JFrame {
 
         JLabel lblJudul = new JLabel("Aplikasi Rekam Medis Pasien");
         lblJudul.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        JLabel lblUser = new JLabel("👤 Nikola Tesla");
+        JLabel lblUser = new JLabel("👤 User");
 
         header.add(lblJudul, BorderLayout.WEST);
         header.add(lblUser, BorderLayout.EAST);
