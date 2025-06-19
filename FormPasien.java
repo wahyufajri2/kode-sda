@@ -18,9 +18,25 @@ public class FormPasien extends JPanel {
         setLayout(new BorderLayout());
 
         // Panel input
-        JPanel panelInput = new JPanel(new GridLayout(6, 2, 5, 5));
+        JPanel panelInput = new JPanel(new GridLayout(5, 2, 5, 5));
         tfNik = new JTextField();
+        tfNik.addKeyListener(new KeyAdapter(){
+            public void keyTyped(KeyEvent e){
+                char c = e.getKeyChar();
+                if (!Character.isDigit(c) && !Character.isISOControl(c)){
+                    e.consume(); //blokir input selain angka
+                }
+            }
+        });
         tfNama = new JTextField();
+        tfNama.addKeyListener(new KeyAdapter(){
+            public void keyTyped(KeyEvent e){
+                char c = e.getKeyChar();
+                if (Character.isDigit(c)){
+                    e.consume(); //blokir angka
+                }
+            }
+        });
         tfTanggal = new JTextField();
         cbJK = new JComboBox<>(new String[] {"Laki-laki", "Perempuan"});
         tfAlamat = new JTextField();
@@ -33,7 +49,14 @@ public class FormPasien extends JPanel {
         panelInput.add(new JLabel("Tanggal Lahir (YYYY-MM-DD):")); panelInput.add(tfTanggal);
         panelInput.add(new JLabel("Jenis Kelamin:")); panelInput.add(cbJK);
         panelInput.add(new JLabel("Alamat:")); panelInput.add(tfAlamat);
-        panelInput.add(btnSimpan); panelInput.add(btnLihat);
+        
+        // Panel tombol (terpisah)
+        JPanel panelButton = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnSimpan = new JButton("Simpan");
+        btnLihat = new JButton("Lihat Data");
+
+        panelButton.add(btnSimpan);
+        panelButton.add(btnLihat);
 
         // Tabel
         model = new DefaultTableModel(new String[]{"ID", "NIK", "Nama", "Tgl Lahir", "JK", "Alamat"}, 0);
@@ -44,11 +67,16 @@ public class FormPasien extends JPanel {
         btnSimpan.addActionListener(e -> simpanData());
         btnLihat.addActionListener(e -> tampilkanData());
 
-        add(panelInput, BorderLayout.NORTH);
+        // Gabungkan panel input dan tombol ke panel atas
+        JPanel panelAtas = new JPanel(new BorderLayout());
+        panelAtas.add(panelInput, BorderLayout.CENTER);
+        panelAtas.add(panelButton, BorderLayout.SOUTH);
+
+        add(panelAtas, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    private void simpanData() {
+    private void simpanData() {        
         try {
             Connection conn = KoneksiDB.getConnection();
             String sql = "INSERT INTO pasien (nik, nama, tanggal_lahir, jenis_kelamin, alamat) VALUES (?, ?, ?, ?, ?)";
