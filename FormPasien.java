@@ -1,6 +1,7 @@
 package view;
 
 import koneksi.KoneksiDB;
+import model.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -10,7 +11,7 @@ import java.sql.*;
 public class FormPasien extends JPanel {
     private JTextField tfNik, tfNama, tfTanggal, tfAlamat;
     private JComboBox<String> cbJK;
-    private JButton btnSimpan, btnLihat;
+    private JButton btnSimpan, btnLihat, btnReset;
     private JTable table;
     private DefaultTableModel model;
 
@@ -42,6 +43,7 @@ public class FormPasien extends JPanel {
         tfAlamat = new JTextField();
         btnSimpan = new JButton("Simpan");
         btnLihat = new JButton("Lihat Data");
+        btnReset = new JButton("Reset");
 
         panelInput.setBorder(BorderFactory.createTitledBorder("Form Input Pasien"));
         panelInput.add(new JLabel("NIK:")); panelInput.add(tfNik);
@@ -49,23 +51,55 @@ public class FormPasien extends JPanel {
         panelInput.add(new JLabel("Tanggal Lahir (YYYY-MM-DD):")); panelInput.add(tfTanggal);
         panelInput.add(new JLabel("Jenis Kelamin:")); panelInput.add(cbJK);
         panelInput.add(new JLabel("Alamat:")); panelInput.add(tfAlamat);
-        
+
         // Panel tombol (terpisah)
         JPanel panelButton = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btnSimpan = new JButton("Simpan");
-        btnLihat = new JButton("Lihat Data");
-
         panelButton.add(btnSimpan);
         panelButton.add(btnLihat);
+        panelButton.add(btnReset);
 
         // Tabel
-        model = new DefaultTableModel(new String[]{"ID", "NIK", "Nama", "Tgl Lahir", "JK", "Alamat"}, 0);
+        model = new DefaultTableModel(new String[]{"ID", "NIK", "Nama", "Tgl Lahir", "JK", "Alamat", "Aksi"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 6; // hanya kolom aksi
+            }
+        };
         table = new JTable(model);
+        table.setRowHeight(40);
+
+        // Tambah ButtonRenderer & Editor
+        table.getColumnModel().getColumn(6).setCellRenderer(new ButtonRenderer());
+        table.getColumnModel().getColumn(6).setCellEditor(new ButtonEditor(table, new AksiEditHapus() {
+            @Override
+            public void onEdit(int row) {
+                tfNik.setText(model.getValueAt(row, 1).toString());
+                tfNama.setText(model.getValueAt(row, 2).toString());
+                tfTanggal.setText(model.getValueAt(row, 3).toString());
+                cbJK.setSelectedItem(model.getValueAt(row, 4).toString());
+                tfAlamat.setText(model.getValueAt(row, 5).toString());
+            }
+
+            @Override
+            public void onHapus(int id) {
+                try (Connection conn = KoneksiDB.getConnection()) {
+                    int konfirmasi = JOptionPane.showConfirmDialog(null, "Yakin hapus data ini?", "Hapus", JOptionPane.YES_NO_OPTION);
+                    if (konfirmasi == JOptionPane.YES_OPTION) {
+                        conn.createStatement().executeUpdate("DELETE FROM pasien WHERE id=" + id);
+                        tampilkanData();
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(null, "Gagal hapus: " + e.getMessage());
+                }
+            }
+        }));
+
         JScrollPane scrollPane = new JScrollPane(table);
 
         // Action
         btnSimpan.addActionListener(e -> simpanData());
         btnLihat.addActionListener(e -> tampilkanData());
+        btnReset.addActionListener(e -> resetData());
 
         // Gabungkan panel input dan tombol ke panel atas
         JPanel panelAtas = new JPanel(new BorderLayout());
@@ -76,7 +110,7 @@ public class FormPasien extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    private void simpanData() {        
+    private void simpanData() {
         try {
             Connection conn = KoneksiDB.getConnection();
             String sql = "INSERT INTO pasien (nik, nama, tanggal_lahir, jenis_kelamin, alamat) VALUES (?, ?, ?, ?, ?)";
@@ -88,7 +122,8 @@ public class FormPasien extends JPanel {
             stmt.setString(5, tfAlamat.getText());
             stmt.executeUpdate();
             JOptionPane.showMessageDialog(this, "Data pasien berhasil disimpan.");
-            tfNik.setText(""); tfNama.setText(""); tfTanggal.setText(""); tfAlamat.setText("");
+            resetData();
+            tampilkanData();
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Gagal menyimpan data: " + ex.getMessage());
         }
@@ -107,11 +142,19 @@ public class FormPasien extends JPanel {
                     rs.getString("nama"),
                     rs.getString("tanggal_lahir"),
                     rs.getString("jenis_kelamin"),
-                    rs.getString("alamat")
+                    rs.getString("alamat"),
+                    "Aksi"
                 });
             }
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Gagal menampilkan data: " + ex.getMessage());
         }
+    }
+
+    private void resetData() {
+        tfNik.setText("");
+        tfNama.setText("");
+        tfTanggal.setText("");
+        tfAlamat.setText("");
     }
 }
